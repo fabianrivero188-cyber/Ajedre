@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajedrez IA - Estilo Lichess</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cm-chessboard/3.13.1/cm-chessboard.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cm-chessboard/3.13.1/cm-chessboard.js"></script>
+
+    <style>
+        :root {
+            --bg-principal: #161512;
+            --bg-panel: #262421;
+            --texto: #bababa;
+            --texto-brillante: #ffffff;
+            --borde: #363431;
+        }
+
+        body {
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-principal);
+            color: var(--texto);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            max-width: 950px;
+            width: 100%;
+            background: var(--bg-panel);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+
+        .board-container {
+            flex: 1.2;
+            max-width: 480px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Ajuste de estilos para el tablero cm-chessboard */
+        .board {
+            width: 100%;
+            aspect-ratio: 1;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            border-radius: 4px;
+        }
+
+        .panel-control {
+            flex: 0.8;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #1e1c18;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--borde);
+            box-sizing: border-box;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: var(--texto-brillante);
+            text-align: center;
+            font-size: 1.3rem;
+            border-bottom: 2px solid var(--borde);
+            padding-bottom: 8px;
+        }
+
+        .config-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--borde);
+            color: var(--texto-brillante);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+        }
+
+        button.btn-primary {
+            background: #363431;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        button.btn-primary:hover {
+            background: #45423e;
+        }
+
+        .historial-container {
+            margin: 12px 0;
+        }
+
+        .historial {
+            width: 100%;
+            height: 100px;
+            background: #161512;
+            border: 1px solid var(--borde);
+            border-radius: 4px;
+            padding: 8px;
+            color: #d5c4a1;
+            font-family: monospace;
+            overflow-y: auto;
+            box-sizing: border-box;
+            resize: none;
+        }
+
+        .estado {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            background: #262421;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                padding: 10px;
+            }
+            .board-container {
+                max-width: 100%;
+            }
+            .panel-control {
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="board-container">
+        <div id="myBoard" class="board"></div>
+    </div>
+
+    <div class="panel-control">
+        <div>
+            <h2><i class="fa-solid fa-chess"></i> Stockfish Engine</h2>
+            
+            <div class="config-group">
+                <label for="difficulty"><i class="fa-solid fa-gauge-high"></i> Dificultad (Profundidad):</label>
+                <select id="difficulty">
+                    <option value="1">Fácil (Profundidad 1)</option>
+                    <option value="5" selected>Medio (Profundidad 5)</option>
+                    <option value="12">Difícil (Profundidad 12)</option>
+                </select>
+            </div>
+
+            <div class="config-group">
+                <label for="color"><i class="fa-solid fa-palette"></i> Jugar con:</label>
+                <select id="color">
+                    <option value="w" selected>Blancas</option>
+                    <option value="b">Negras</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="historial-container">
+            <label><i class="fa-solid fa-list-ol"></i> Historial (PGN):</label>
+            <textarea id="pgn" class="historial" readonly></textarea>
+        </div>
+
+        <div>
+            <div id="status" class="estado">Cargando partida...</div>
+            <button id="resetBtn" class="btn-primary"><i class="fa-solid fa-rotate-right"></i> Reiniciar Partida</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let board = null;
+    const game = new Chess();
+    
+    const statusEl = document.getElementById('status');
+    const pgnEl = document.getElementById('pgn');
+    const difficultyEl = document.getElementById('difficulty');
+    const colorEl = document.getElementById('color');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let playerColor = 'w';
+
+    function inputHandler(event) {
+        if (game.game_over()) return false;
+
+        // Validar turnos según el color seleccionado
+        if ((playerColor === 'w' && event.piece.charAt(0) === 'b') ||
+            (playerColor === 'b' && event.piece.charAt(0) === 'w') ||
+            (game.turn() !== playerColor)) {
+            return false;
+        }
+
+        // Manejar movimiento al arrastrar y soltar
+        if (event.type === INPUT_TYPE.moveDone) {
+            let move = game.move({
+                from: event.squareFrom,
+                to: event.squareTo,
+                promotion: 'q'
+            });
+
+            if (move === null) {
+                return false; // Movimiento ilegal
+            }
+
+            updateStatus();
+
+            // Si es turno de la IA
+            if (!game.game_over() && game.turn() !== playerColor) {
+                statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> La IA está pensando...';
+                setTimeout(getComputerMove, 300);
+            }
+            return true;
+        }
+        return true;
+    }
+
+    function getComputerMove() {
+        const fen = game.fen();
+        const depth = difficultyEl.value;
+        const url = `https://stockfish.online/api/s/v2.php?fen=${encodeURIComponent(fen)}&depth=${depth}`;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.bestmove) {
+                    const bestMove = data.bestmove.split(' ')[1];
+                    const from = bestMove.substring(0, 2);
+                    const to = bestMove.substring(2, 4);
+                    const promotion = bestMove.substring(4, 5) || 'q';
+
+                    game.move({ from: from, to: to, promotion: promotion });
+                    board.setPosition(game.fen());
+                    updateStatus();
+                } else {
+                    statusEl.innerText = "Error al obtener movimiento de la IA.";
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                statusEl.innerText = "Error de conexión con el servidor.";
+            });
+    }
+
+    function updateStatus() {
+        let statusText = '';
+        let moveColor = (game.turn() === 'w') ? 'Blancas' : 'Negras';
+
+        if (game.in_checkmate()) {
+            statusText = `Fin del juego. ${moveColor} en Jaque Mate.`;
+        } else if (game.in_draw()) {
+            statusText = 'Fin del juego. Empate (Tablas).';
+        } else {
+            statusText = `Turno de: ${game.turn() === playerColor ? 'Jugador' : 'IA'}`;
+            if (game.in_check()) {
+                statusText += ' - ¡Jaque!';
+            }
+        }
+
+        statusEl.innerText = statusText;
+        pgnEl.value = game.pgn({ max_width: 5, newline_char: '\n' });
+        pgnEl.scrollTop = pgnEl.scrollHeight;
+    }
+
+    function resetGame() {
+        game.reset();
+        playerColor = colorEl.value;
+        
+        const orientation = playerColor === 'w' ? COLOR.white : COLOR.black;
+        
+        if (!board) {
+            // Inicialización única del tablero cm-chessboard
+            board = new Chessboard(document.getElementById("myBoard"), {
+                position: "start",
+                orientation: orientation,
+                responsive: true,
+                sprite: { url: "https://cdnjs.cloudflare.com/ajax/libs/cm-chessboard/3.13.1/chessboard-sprite.svg" }
+            });
+            board.enableMoveInput(inputHandler);
+        } else {
+            board.setOrientation(orientation);
+            board.setPosition("start");
+        }
+        
+        updateStatus();
+
+        if (playerColor === 'b') {
+            statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> La IA empieza moviendo...';
+            getComputerMove();
+        }
+    }
+
+    resetBtn.addEventListener('click', resetGame);
+    colorEl.addEventListener('change', resetGame);
+
+    // Arrancar
+    window.onload = function() {
+        resetGame();
+    };
+</script>
+</body>
+</html>
